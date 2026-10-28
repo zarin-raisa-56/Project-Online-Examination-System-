@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online Examination System</title>
+<style>
+  :root {
+    --bg: #eeeeee;
+    --border: #8f8f8f;
+    --btn-top: #e3eefa;
+    --btn-bottom: #b9d1ea;
+    --btn-border: #5b84ad;
+    --row-sel: #b8cfe5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 20px 12px 40px;
+    background: #d9d9d9;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    color: #111;
+  }
+  .window {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: var(--bg);
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+    padding: 14px 20px 24px;
+  }
+  h1 {
+    margin: 4px 0 16px;
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: .2px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .panel {
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .left { padding: 12px 10px 20px; }
+  .row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .row label { font-weight: bold; }
+  input[type="text"], select {
+    width: 100%;
+    height: 25px;
+    padding: 2px 4px;
+    border: 1px solid #7a8a99;
+    background: #fff;
+    font: inherit;
+    border-radius: 0;
+  }
+  input[type="text"]:focus, select:focus {
+    outline: 2px solid #4d90d1;
+    outline-offset: -1px;
+  }
+  button {
+    height: 30px;
+    padding: 0 14px;
+    font: inherit;
+    font-weight: bold;
+    color: #111;
+    background: linear-gradient(var(--btn-top), var(--btn-bottom));
+    border: 1px solid var(--btn-border);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.06); }
+  button:active { filter: brightness(.94); }
+  .btn-row {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin-top: 22px;
+  }
+  .btn-row button { width: 120px; }
+
+  .right { display: flex; flex-direction: column; min-height: 360px; }
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 6px;
+  }
+  .topbar input { width: 110px; }
+  .topbar button { height: 26px; padding: 0 12px; }
+  .table-wrap {
+    flex: 1;
+    margin: 0 4px 4px;
+    border: 1px solid var(--border);
+    background: #fff;
+    overflow: auto;
+    min-height: 300px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-weight: normal;
+    text-align: center;
+    background: linear-gradient(#fbfbfb, #dcdcdc);
+    border: 1px solid #b5b5b5;
+    padding: 3px 4px;
+    position: sticky;
+    top: 0;
+  }
+  td {
+    border: 1px solid #d4d4d4;
+    padding: 1px 3px;
+    white-space: nowrap;
+  }
+  tbody tr { cursor: default; }
+  tbody tr.selected { background: var(--row-sel); }
+
+  /* Java JOptionPane-এর মতো মেসেজ ডায়ালগ */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.28);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 12px;
+  }
+  .overlay.open { display: flex; }
+  #msgOverlay { z-index: 60; } /* মেসেজ সবসময় এডিট ডায়ালগের ওপরে */
+  .dialog {
+    background: #eee;
+    border: 1px solid #999;
+    border-radius: 6px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.4);
+    min-width: 260px;
+    max-width: 94vw;
+  }
+  .dialog .titlebar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 10px;
+    background: #f6f6f6;
+    border-bottom: 1px solid #d0d0d0;
+    border-radius: 6px 6px 0 0;
+  }
+  .dialog .titlebar .x { cursor: pointer; font-size: 18px; line-height: 1; background: none; border: 0; height: auto; padding: 0 2px; font-weight: normal; }
+  .dialog .body { padding: 16px 20px 6px; display: flex; gap: 14px; align-items: flex-start; }
+  .icon {
+    flex: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #cfd8ff, #6f7fe0);
+    border: 1px solid #4a56b8;
+    color: #fff;
+    font: bold 20px/30px Georgia, serif;
+    text-align: center;
+  }
+  .icon.warn { background: radial-gradient(circle at 35% 30%, #ffe9a8, #e6a817); border-color: #a87a00; }
+  .msg { font-weight: bold; line-height: 1.55; padding-top: 2px; }
+  .dialog .actions { display: flex; justify-content: center; gap: 12px; padding: 8px 20px 16px; }
+  .dialog .actions button { height: 26px; min-width: 60px; }
+
+  .edit-grid { display: grid; grid-template-columns: 90px 1fr; gap: 10px; padding: 18px 20px 4px; min-width: 340px; }
+  .edit-grid label { align-self: center; }
+
+  footer { text-align: center; margin-top: 14px; color: #666; font-size: 12px; }
+
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 100px 1fr; }
+    .edit-grid { min-width: 0; grid-template-columns: 80px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <h1>ONLINE EXAMINATION SYSTEM</h1>
+
+  <div class="layout">
+    <!-- বাম প্যানেল -->
+    <section class="panel left">
+      <div class="row"><label for="nameF">Student Name:</label><input type="text" id="nameF" autocomplete="off"></div>
+      <div class="row"><label for="idF">ID:</label><input type="text" id="idF" autocomplete="off"></div>
+      <div class="row">
+        <label for="subF">Subject:</label>
+        <select id="subF">
+          <option>Math</option><option>Physics</option><option>Java</option><option>English</option>
+        </select>
+      </div>
+      <div class="row"><label for="phoneF">Phone No:</label><input type="text" id="phoneF" autocomplete="off" inputmode="tel"></div>
+      <div class="btn-row">
+        <button id="addBtn">CONFIRM</button>
+        <button id="exitBtn">EXIT</button>
+      </div>
+    </section>
+
+    <!-- ডান প্যানেল -->
+    <section class="panel right">
+      <div class="topbar">
+        <input type="text" id="searchF" autocomplete="off" aria-label="Search by ID">
+        <button id="searchBtn">Search</button>
+        <button id="removeBtn">Remove</button>
+        <button id="updateBtn">Update</button>
+        <button id="saveBtn">Save Changes</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Subject</th><th>Phone</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+<footer>Data is saved in this browser (localStorage).</footer>
+
+<!-- মেসেজ ডায়ালগ -->
+<div class="overlay" id="msgOverlay">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Message">
+    <div class="titlebar"><span>Message</span><button class="x" id="msgX" aria-label="Close">&times;</button></div>
+    <div class="body"><div class="icon" id="msgIcon">i</div><div class="msg" id="msgText"></div></div>
+    <div class="actions"><button id="msgOk">OK</button></div>
+  </div>
+</div>
+
+<!-- এডিট ডায়ালগ -->
+<div class="overlay" id="editOverlay">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Edit Student">
+    <div class="titlebar"><span>Edit Student</span><button class="x" id="editX" aria-label="Close">&times;</button></div>
+    <div class="edit-grid">
+      <label for="eId">ID:</label><input type="text" id="eId">
+      <label for="eName">Name:</label><input type="text" id="eName">
+      <label for="eSub">Subject:</label>
+      <select id="eSub"><option>Math</option><option>Physics</option><option>Java</option><option>English</option></select>
+      <label for="ePhone">Phone No:</label><input type="text" id="ePhone">
+    </div>
+    <div class="actions" style="padding-top:16px">
+      <button id="eSave">Save</button>
+      <button id="eCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORE_KEY = "oes_students_v1";
+  var MAX = 100; // Java কোডের মতোই সর্বোচ্চ ১০০ জন
+
+  // প্রথমবার খুললে স্ক্রিনশটের ডেটা দিয়ে শুরু হবে
+  var SEED = [
+    { id: "25-62312-2", name: "Raisa Zarin", subject: "Math",    phone: "01712149543" },
+    { id: "25-62319-2", name: "borsha",      subject: "Physics", phone: "01712149542" },
+    { id: "25-62317-2", name: "atik",        subject: "Physics", phone: "01712149541" },
+    { id: "25-62313-2", name: "rony",        subject: "Java",    phone: "01712149782" },
+    { id: "25-62318-2", name: "zarif",       subject: "English", phone: "0163843787" }
+  ];
+
+  // ---------- ডেটা লেয়ার (StudentFileHandler-এর কাজ) ----------
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw === null) { save(SEED); return SEED.slice(); }
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return SEED.slice(); }
+  }
+  function save(list) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  var students = load();
+
+  function findIndexById(id) {
+    for (var i = 0; i < students.length; i++) if (students[i].id === id) return i;
+    return -1;
+  }
+
+  // ---------- এলিমেন্ট ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var tbody = $("tbody");
+  var selectedId = null;
+
+  // ---------- মেসেজ ডায়ালগ ----------
+  var msgOverlay = $("msgOverlay"), msgText = $("msgText"), msgIcon = $("msgIcon");
+  function showMessage(lines, warn) {
+    msgText.textContent = "";
+    (Array.isArray(lines) ? lines : [lines]).forEach(function (line, i) {
+      if (i) msgText.appendChild(document.createElement("br"));
+      msgText.appendChild(document.createTextNode(line));
+    });
+    msgIcon.textContent = warn ? "!" : "i";
+    msgIcon.className = "icon" + (warn ? " warn" : "");
+    msgOverlay.classList.add("open");
+    $("msgOk").focus();
+  }
+  function closeMessage() { msgOverlay.classList.remove("open"); }
+  $("msgOk").addEventListener("click", closeMessage);
+  $("msgX").addEventListener("click", closeMessage);
+
+  // ---------- টেবিল ----------
+  function render() {
+    tbody.textContent = "";
+    students.forEach(function (s) {
+      var tr = document.createElement("tr");
+      [s.id, s.name, s.subject, s.phone].forEach(function (v) {
+        var td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      if (s.id === selectedId) tr.className = "selected";
+      tr.addEventListener("click", function () {
+        selectedId = s.id;
+        render();
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ---------- ADD (CONFIRM) ----------
+  $("addBtn").addEventListener("click", function () {
+    var id = $("idF").value.trim();
+    var name = $("nameF").value.trim();
+    var phone = $("phoneF").value.trim();
+    var subject = $("subF").value;
+
+    if (!id || !name || !phone) { showMessage("Please fill in all fields", true); return; }
+    if (findIndexById(id) !== -1) { showMessage("Student with this ID already exists", true); return; }
+    if (students.length >= MAX) { showMessage("Maximum " + MAX + " students allowed", true); return; }
+
+    students.push({ id: id, name: name, subject: subject, phone: phone });
+    save(students);
+    render();
+
+    $("idF").value = ""; $("nameF").value = ""; $("phoneF").value = ""; $("subF").selectedIndex = 0;
+    showMessage("Student added successfully!");
+  });
+
+  // ---------- SEARCH (শুধু ID দিয়ে) ----------
+  function doSearch() {
+    var s = students[findIndexById($("searchF").value.trim())];
+    if (!s) { showMessage("ID not found", true); return; }
+    showMessage(["ID: " + s.id, "Name: " + s.name, "Subject: " + s.subject, "Phone: " + s.phone]);
+  }
+  $("searchBtn").addEventListener("click", doSearch);
+  $("searchF").addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
+
+  // ---------- REMOVE ----------
+  $("removeBtn").addEventListener("click", function () {
+    if (selectedId === null) { showMessage("Select a student row to remove", true); return; }
+    var i = findIndexById(selectedId);
+    if (i === -1) return;
+    students.splice(i, 1);
+    selectedId = null;
+    save(students);
+    render();
+    showMessage("Student removed successfully!");
+  });
+
+  // ---------- UPDATE ----------
+  var editOverlay = $("editOverlay");
+  var editingOldId = null;
+
+  $("updateBtn").addEventListener("click", function () {
+    if (selectedId === null) { showMessage("Select a student row to update", true); return; }
+    var s = students[findIndexById(selectedId)];
+    if (!s) return;
+    editingOldId = s.id;
+    $("eId").value = s.id;
+    $("eName").value = s.name;
+    $("eSub").value = s.subject;
+    $("ePhone").value = s.phone;
+    editOverlay.classList.add("open");
+    $("eName").focus();
+  });
+
+  function closeEdit() { editOverlay.classList.remove("open"); editingOldId = null; }
+  $("eCancel").addEventListener("click", closeEdit);
+  $("editX").addEventListener("click", closeEdit);
+
+  $("eSave").addEventListener("click", function () {
+    var newId = $("eId").value.trim();
+    var newName = $("eName").value.trim();
+    var newPhone = $("ePhone").value.trim();
+    var newSubject = $("eSub").value;
+
+    if (!newId || !newName || !newPhone) { showMessage("Please fill in all fields", true); return; }
+    var clash = findIndexById(newId);
+    if (clash !== -1 && newId !== editingOldId) { showMessage("Student with this ID already exists", true); return; }
+
+    var i = findIndexById(editingOldId);
+    if (i === -1) { closeEdit(); return; }
+    students[i] = { id: newId, name: newName, subject: newSubject, phone: newPhone };
+    selectedId = newId;
+    save(students);
+    render();
+    closeEdit();
+    showMessage("Student updated successfully!");
+  });
+
+  // ---------- SAVE CHANGES ----------
+  $("saveBtn").addEventListener("click", function () {
+    save(students); // ডেটা আসলে প্রতিটি পরিবর্তনেই সেভ হয়; এটা শুধু নিশ্চিত করে
+    showMessage("Changes saved successfully!");
+  });
+
+  // ---------- EXIT ----------
+  $("exitBtn").addEventListener("click", function () {
+    window.close(); // ব্রাউজার ট্যাব স্ক্রিপ্ট দিয়ে খোলা না হলে বন্ধ হয় না
+    showMessage("You can now close this tab. Your data is saved in this browser.");
+  });
+
+  // ---------- কীবোর্ড ----------
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeMessage(); closeEdit(); }
+    if (e.key === "Enter" && msgOverlay.classList.contains("open")) closeMessage();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
